@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Silent Check SSO</title>
+</head>
+<body>
+    <script>
+        const url = new URL(window.location);
+        const keycloakUrl = url.searchParams.get('origin') || window.location.origin;
+
+        if (window.parent !== window) {
+            window.parent.postMessage(window.location.href, keycloakUrl);
+        }
+    </script>
+</body>
+</html>
