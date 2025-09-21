@@ -93,7 +93,8 @@ export function middleware(request: NextRequest) {
       const now = Math.floor(Date.now() / 1000);
 
       if (payload.exp < now) {
-        const response = NextResponse.redirect(new URL('/', request.url));
+        console.log('Token expired, redirecting to login');
+        const response = NextResponse.redirect(new URL('/?error=token_expired', request.url));
         response.cookies.delete('keycloak-token');
         return response;
       }
@@ -102,11 +103,13 @@ export function middleware(request: NextRequest) {
       const userRoles = extractClientRoles(token);
 
       if (!userRoles.includes(REQUIRED_ROLE)) {
+        console.log('Insufficient permissions, user roles:', userRoles, 'required:', REQUIRED_ROLE);
         return NextResponse.redirect(new URL('/?error=insufficient_permissions', request.url));
       }
 
     } catch (error) {
-      const response = NextResponse.redirect(new URL('/', request.url));
+      console.error('Token validation error:', error);
+      const response = NextResponse.redirect(new URL('/?error=invalid_token', request.url));
       response.cookies.delete('keycloak-token');
       return response;
     }

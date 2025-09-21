@@ -71,7 +71,7 @@ export function PageHeader({
           <Breadcrumb>
             <BreadcrumbList>
               {finalBreadcrumbs.map((item, index) => (
-                <div key={item.title} className="flex items-center">
+                <div key={`${item.title}-${index}`} className="flex items-center">
                   {index === 0 && (
                     <>
                       <BreadcrumbItem className="hidden md:block">

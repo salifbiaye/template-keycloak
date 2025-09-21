@@ -141,19 +141,17 @@ export default function LandingPage() {
   const [menuState, setMenuState] = useState(false)
 
   const handleLogin = async () => {
-    // Nettoyer tous les cookies avant de commencer
-    localStorage.clear();
-    sessionStorage.clear();
+    // Nettoyer uniquement les données d'authentification spécifiques
+    localStorage.removeItem('keycloak-token');
+    sessionStorage.removeItem('pkce_code_verifier');
 
-    // Supprimer tous les cookies du domaine
-    document.cookie.split(";").forEach(function(c) {
-      document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
-    });
+    // Supprimer uniquement le cookie keycloak-token s'il existe
+    document.cookie = 'keycloak-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
 
     // Redirection directe vers Keycloak avec PKCE
-    const keycloakUrl = 'http://keycloak:8080';
-    const realm = 'sib-app';
-    const clientId = 'oauth2-pkce';
+    const keycloakUrl = process.env.NEXT_PUBLIC_KEYCLOAK_URL || 'http://localhost:8080';
+    const realm = process.env.NEXT_PUBLIC_KEYCLOAK_REALM || 'sib-app';
+    const clientId = process.env.NEXT_PUBLIC_KEYCLOAK_CLIENT_ID || 'oauth2-pkce';
 
     // Générer des paramètres PKCE corrects
     const codeVerifier = generateCodeVerifier();

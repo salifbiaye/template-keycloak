@@ -1,6 +1,6 @@
 // Fonctions côté CLIENT uniquement
 export function logout() {
-  const keycloakUrl = 'http://keycloak:8080';
+  const keycloakUrl = process.env.NEXT_PUBLIC_KEYCLOAK_URL ||'http://keycloak:8080';
   const realm = process.env.NEXT_PUBLIC_KEYCLOAK_REALM || 'sib-app';
 
   // Nettoyer les cookies et storage

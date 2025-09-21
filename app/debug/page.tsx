@@ -7,7 +7,7 @@ export default function DebugPage() {
         <div>
           <h2 className="text-lg font-semibold mb-2">1. Test direct du realm</h2>
           <a
-            href="http://keycloak:8080/realms/sib-app"
+            href="http://localhost:8080/realms/sib-app"
             target="_blank"
             className="inline-block bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
           >
@@ -18,7 +18,7 @@ export default function DebugPage() {
         <div>
           <h2 className="text-lg font-semibold mb-2">2. Test login sans PKCE</h2>
           <a
-            href="http://keycloak:8080/realms/sib-app/protocol/openid-connect/auth?client_id=oauth2-pkce&redirect_uri=http://localhost:3000/auth/callback&response_type=code&scope=openid&prompt=login"
+            href="http://localhost:8080/realms/sib-app/protocol/openid-connect/auth?client_id=oauth2-pkce&redirect_uri=http://localhost:3000/auth/callback&response_type=code&scope=openid&prompt=login"
             target="_blank"
             className="inline-block bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
           >

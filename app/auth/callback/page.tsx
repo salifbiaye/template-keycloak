@@ -41,17 +41,20 @@ export default function CallbackPage() {
           return;
         }
 
+        const keycloakUrl = process.env.NEXT_PUBLIC_KEYCLOAK_URL || 'http://localhost:8080';
+        const realm = process.env.NEXT_PUBLIC_KEYCLOAK_REALM || 'sib-app';
+        const clientId = process.env.NEXT_PUBLIC_KEYCLOAK_CLIENT_ID || 'oauth2-pkce';
+
         const tokenParams = {
           grant_type: 'authorization_code',
-          client_id: 'oauth2-pkce',
+          client_id: clientId,
           code: code,
           redirect_uri: window.location.origin + '/auth/callback',
           code_verifier: codeVerifier,
         };
 
-        console.log('🔄 Token exchange params:', tokenParams);
 
-        const tokenResponse = await fetch('http://keycloak:8080/realms/sib-app/protocol/openid-connect/token', {
+        const tokenResponse = await fetch(`${keycloakUrl}/realms/${realm}/protocol/openid-connect/token`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
@@ -68,8 +71,8 @@ export default function CallbackPage() {
         const tokenData = await tokenResponse.json();
         console.log('✅ Got token:', tokenData);
 
-        // Stocker le token dans un cookie
-        document.cookie = `keycloak-token=${tokenData.access_token}; path=/; secure; samesite=lax`;
+        // Stocker le token dans un cookie (8 heures)
+        document.cookie = `keycloak-token=${tokenData.access_token}; path=/; samesite=lax; max-age=28800`;
 
         // Nettoyer le code verifier
         sessionStorage.removeItem('pkce_code_verifier');
