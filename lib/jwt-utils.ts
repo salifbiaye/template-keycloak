@@ -136,3 +136,111 @@ export function getRealmRoles(userInfo: UserInfo): string[] {
 export function getClientRoles(userInfo: UserInfo, clientId: string): string[] {
   return userInfo.resource_access?.[clientId]?.roles || [];
 }
+
+// Fonctions pour le refresh token
+export function getRefreshTokenFromCookie(): string | null {
+  if (typeof window === 'undefined') return null;
+
+  const cookies = document.cookie.split(';');
+  for (const cookie of cookies) {
+    const [name, value] = cookie.trim().split('=');
+    if (name === 'keycloak-refresh-token') {
+      return value;
+    }
+  }
+  return null;
+}
+
+// Vérifier si le token expire bientôt (dans les 5 prochaines minutes)
+export function isTokenExpiringSoon(userInfo: UserInfo): boolean {
+  if (!userInfo.exp) return true;
+
+  const currentTime = Math.floor(Date.now() / 1000);
+  const fiveMinutesFromNow = currentTime + (5 * 60); // 5 minutes en secondes
+
+  return userInfo.exp <= fiveMinutesFromNow;
+}
+
+// Renouveler le token avec le refresh token
+export async function refreshAccessToken(): Promise<boolean> {
+  const refreshToken = getRefreshTokenFromCookie();
+  if (!refreshToken) {
+    console.log('No refresh token found');
+    return false;
+  }
+
+  try {
+    const keycloakUrl = process.env.NEXT_PUBLIC_KEYCLOAK_URL || 'http://localhost:8080';
+    const realm = process.env.NEXT_PUBLIC_KEYCLOAK_REALM || 'sib-app';
+    const clientId = process.env.NEXT_PUBLIC_KEYCLOAK_CLIENT_ID || 'oauth2-pkce';
+
+    const response = await fetch(`${keycloakUrl}/realms/${realm}/protocol/openid-connect/token`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        grant_type: 'refresh_token',
+        client_id: clientId,
+        refresh_token: refreshToken,
+      }),
+    });
+
+    if (!response.ok) {
+      console.error('Token refresh failed:', response.status);
+      return false;
+    }
+
+    const tokenData = await response.json();
+
+    // Mettre à jour les cookies avec les nouveaux tokens
+    document.cookie = `keycloak-token=${tokenData.access_token}; path=/; samesite=lax; max-age=28800`;
+    if (tokenData.refresh_token) {
+      document.cookie = `keycloak-refresh-token=${tokenData.refresh_token}; path=/; samesite=lax; max-age=28800`;
+    }
+
+    console.log('✅ Token refreshed successfully');
+    return true;
+  } catch (error) {
+    console.error('Error refreshing token:', error);
+    return false;
+  }
+}
+
+// Fonction utilitaire pour maintenir la session active
+export function startTokenRefreshTimer(): void {
+  if (typeof window === 'undefined') return;
+
+  // Vérifier toutes les 2 minutes si le token a besoin d'être renouvelé
+  const interval = setInterval(async () => {
+    const token = getTokenFromCookie();
+    if (!token) {
+      clearInterval(interval);
+      return;
+    }
+
+    const userInfo = decodeJWT(token);
+    if (!userInfo) {
+      clearInterval(interval);
+      return;
+    }
+
+    // Si le token expire bientôt, le renouveler
+    if (isTokenExpiringSoon(userInfo)) {
+      console.log('🔄 Token expiring soon, refreshing...');
+      const refreshed = await refreshAccessToken();
+
+      if (!refreshed) {
+        console.log('❌ Failed to refresh token, user will be logged out');
+        clearInterval(interval);
+        // Optionnel: rediriger vers la page de login
+        // window.location.href = '/';
+      }
+    }
+  }, 2 * 60 * 1000); // Vérifier toutes les 2 minutes
+
+  // Nettoyer l'interval quand l'utilisateur quitte la page
+  window.addEventListener('beforeunload', () => {
+    clearInterval(interval);
+  });
+}

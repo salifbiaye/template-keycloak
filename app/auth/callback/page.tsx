@@ -71,8 +71,15 @@ export default function CallbackPage() {
         const tokenData = await tokenResponse.json();
         console.log('✅ Got token:', tokenData);
 
-        // Stocker le token dans un cookie (8 heures)
+        // Stocker les tokens dans des cookies (8 heures)
         document.cookie = `keycloak-token=${tokenData.access_token}; path=/; samesite=lax; max-age=28800`;
+        if (tokenData.refresh_token) {
+          document.cookie = `keycloak-refresh-token=${tokenData.refresh_token}; path=/; samesite=lax; max-age=28800`;
+        }
+
+        // Démarrer le timer de refresh automatique
+        const { startTokenRefreshTimer } = await import('@/lib/jwt-utils');
+        startTokenRefreshTimer();
 
         // Nettoyer le code verifier
         sessionStorage.removeItem('pkce_code_verifier');
