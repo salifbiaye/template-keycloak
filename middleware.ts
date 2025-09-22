@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { NAV_CONFIG } from './nav-config'
 
 // Configuration simple : les rôles requis pour accéder aux routes protégées
 const REQUIRED_ROLES = ['ADMIN', 'MANAGER','CUSTOMER']; // Ajoutez d'autres rôles selon vos besoins
@@ -15,23 +14,6 @@ function extractClientRoles(token: string): string[] {
   }
 }
 
-// Extraire toutes les URLs autorisées depuis nav-config
-function getAllowedUrls(): string[] {
-  const urls: string[] = ['/'] // toujours autoriser la racine
-
-  NAV_CONFIG.navMain.forEach(group => {
-    // if (group.url) {
-    //   urls.push(group.url)
-    // }
-    group.items.forEach(item => {
-      if (item.url) {
-        urls.push(item.url)
-      }
-    })
-  })
-
-  return urls
-}
 
 // URLs toujours autorisées (système)
 const SYSTEM_ALLOWED_URLS = [
@@ -142,46 +124,7 @@ export function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
-  // Récupérer les URLs autorisées depuis nav-config
-  const allowedUrls = getAllowedUrls()
-
-  // Vérifier si l'URL fait partie de la navigation configurée
-  const isInNavConfig = allowedUrls.some(url => {
-    if (url === pathname) return true
-    if (pathname.startsWith(url + '/')) return true
-    return false
-  })
-
-  // URLs de routes qui existent physiquement (pages réelles)
-  const EXISTING_ROUTES = [
-    '/users',
-    '/dashboard',
-    '/landing',
-    '/register',
-    '/login'
-  ]
-
-  // Vérifier si la route existe physiquement
-  const routeExists = EXISTING_ROUTES.some(route => {
-    if (route === pathname) return true
-    if (pathname.startsWith(route + '/')) return true
-    return false
-  })
-
-  // Si la route existe physiquement, la laisser passer
-  if (routeExists) {
-    return NextResponse.next()
-  }
-
-  // Si la route est dans nav-config mais n'existe pas physiquement,
-  // rediriger vers coming-soon avec l'URL intentionnelle
-  if (isInNavConfig) {
-    const comingSoonUrl = new URL('/coming-soon', request.url)
-    comingSoonUrl.searchParams.set('intended', pathname)
-    return NextResponse.redirect(comingSoonUrl)
-  }
-
-  // Sinon, laisser Next.js gérer (404 naturel)
+  // Laisser Next.js gérer les routes naturellement (404 automatique)
   return NextResponse.next()
 }
 
