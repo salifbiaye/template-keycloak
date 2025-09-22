@@ -24,14 +24,14 @@ interface ServerPermissionGuardProps {
   children: React.ReactNode
 }
 
-export function ServerPermissionGuard({
+export async function ServerPermissionGuard({
   requiredRoles = [],
   requiredRole,
   redirectTo = '/unauthorized',
   children
 }: ServerPermissionGuardProps) {
   // Récupérer le token depuis les cookies
-  const cookieStore = cookies()
+  const cookieStore = await cookies()
   const token = cookieStore.get('keycloak-token')?.value
 
   if (!token) {

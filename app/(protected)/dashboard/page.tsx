@@ -22,6 +22,7 @@ import {
 } from '@remixicon/react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, LineChart, Line } from 'recharts';
 import { useNavigation, FALLBACK_NAVIGATION } from '@/lib/navigation-service';
+import {PermissionWrapper} from "@/components/permission-wrapper";
 
 const transactionData = [
   { month: 'Jan', clients: 1200, comptes: 850, utilisateurs: 45 },
@@ -191,6 +192,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Statistiques principales basées sur nav-config */}
+        <PermissionWrapper requiredRoles={['ADMIN']}>
       <div className="grid gap-4 md:grid-cols-3">
         {moduleStats.map((stat, index) => {
           const IconComponent = require('@remixicon/react')[stat.icon] || RiUserLine;
@@ -224,6 +226,7 @@ export default function DashboardPage() {
           );
         })}
       </div>
+      </PermissionWrapper>
 
       <div className="grid gap-4 md:grid-cols-2">
         {/* Graphique d'évolution */}
