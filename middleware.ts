@@ -2,8 +2,8 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { NAV_CONFIG } from './nav-config'
 
-// Configuration simple : le rôle requis pour accéder aux routes protégées
-const REQUIRED_ROLE = 'ADMIN'; // Changez cette valeur selon vos besoins
+// Configuration simple : les rôles requis pour accéder aux routes protégées
+const REQUIRED_ROLES = ['ADMIN']; // Ajoutez d'autres rôles selon vos besoins
 const clientId = process.env.NEXT_PUBLIC_KEYCLOAK_CLIENT_ID;
 // Fonction pour extraire les rôles du client oauth2-pkce depuis le token
 function extractClientRoles(token: string): string[] {
@@ -93,17 +93,29 @@ export function middleware(request: NextRequest) {
       const now = Math.floor(Date.now() / 1000);
 
       if (payload.exp < now) {
-        console.log('Token expired, redirecting to login');
-        const response = NextResponse.redirect(new URL('/?error=token_expired', request.url));
-        response.cookies.delete('keycloak-token');
-        return response;
+        // Token expiré - essayer le refresh token avant de déconnecter
+        const refreshToken = request.cookies.get('keycloak-refresh-token')?.value;
+
+        if (refreshToken) {
+          console.log('Token expired, attempting refresh...');
+          // Laisser passer pour que le client-side puisse refresh
+          // Le refresh automatique se chargera du renouvellement
+          return NextResponse.next();
+        } else {
+          console.log('No refresh token, redirecting to login');
+          const response = NextResponse.redirect(new URL('/?error=token_expired', request.url));
+          response.cookies.delete('keycloak-token');
+          response.cookies.delete('keycloak-refresh-token');
+          return response;
+        }
       }
 
-      // Vérifier le rôle requis
+      // Vérifier les rôles requis (l'utilisateur doit avoir au moins un des rôles requis)
       const userRoles = extractClientRoles(token);
+      const hasRequiredRole = userRoles.some(role => REQUIRED_ROLES.includes(role));
 
-      if (!userRoles.includes(REQUIRED_ROLE)) {
-        console.log('Insufficient permissions, user roles:', userRoles, 'required:', REQUIRED_ROLE);
+      if (!hasRequiredRole) {
+        console.log('Insufficient permissions, user roles:', userRoles, 'required:', REQUIRED_ROLES);
         return NextResponse.redirect(new URL('/?error=insufficient_permissions', request.url));
       }
 

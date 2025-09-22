@@ -174,6 +174,8 @@ export async function refreshAccessToken(): Promise<boolean> {
     const realm = process.env.NEXT_PUBLIC_KEYCLOAK_REALM || 'sib-app';
     const clientId = process.env.NEXT_PUBLIC_KEYCLOAK_CLIENT_ID || 'oauth2-pkce';
 
+    console.log('🔄 Attempting token refresh with:', { keycloakUrl, realm, clientId });
+
     const response = await fetch(`${keycloakUrl}/realms/${realm}/protocol/openid-connect/token`, {
       method: 'POST',
       headers: {
@@ -187,7 +189,32 @@ export async function refreshAccessToken(): Promise<boolean> {
     });
 
     if (!response.ok) {
-      console.error('Token refresh failed:', response.status);
+      const errorText = await response.text();
+
+      // Parser la réponse d'erreur pour plus d'info
+      let errorDetails = '';
+      try {
+        const errorObj = JSON.parse(errorText);
+        errorDetails = errorObj.error_description || errorObj.error || '';
+      } catch {
+        errorDetails = errorText;
+      }
+
+      console.log('🚫 Token refresh failed:', response.status, errorDetails);
+
+      // Si le refresh token est invalide/expiré, nettoyer et rediriger
+      if (response.status === 400) {
+        console.log('🧹 Refresh token expired/invalid, clearing session...');
+        document.cookie = 'keycloak-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+        document.cookie = 'keycloak-refresh-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+
+        // Redirection vers la page de login après un délai
+        setTimeout(() => {
+          console.log('🔄 Redirecting to login...');
+          window.location.href = '/landing';
+        }, 1000);
+      }
+
       return false;
     }
 
@@ -211,17 +238,26 @@ export async function refreshAccessToken(): Promise<boolean> {
 export function startTokenRefreshTimer(): void {
   if (typeof window === 'undefined') return;
 
+  // Éviter de démarrer plusieurs timers
+  if ((window as any).__tokenRefreshTimer) {
+    clearInterval((window as any).__tokenRefreshTimer);
+  }
+
   // Vérifier toutes les 2 minutes si le token a besoin d'être renouvelé
   const interval = setInterval(async () => {
     const token = getTokenFromCookie();
     if (!token) {
+      console.log('🛑 No token found, stopping refresh timer');
       clearInterval(interval);
+      (window as any).__tokenRefreshTimer = null;
       return;
     }
 
     const userInfo = decodeJWT(token);
     if (!userInfo) {
+      console.log('🛑 Invalid token, stopping refresh timer');
       clearInterval(interval);
+      (window as any).__tokenRefreshTimer = null;
       return;
     }
 
@@ -231,16 +267,22 @@ export function startTokenRefreshTimer(): void {
       const refreshed = await refreshAccessToken();
 
       if (!refreshed) {
-        console.log('❌ Failed to refresh token, user will be logged out');
+        console.log('❌ Failed to refresh token, stopping timer');
         clearInterval(interval);
-        // Optionnel: rediriger vers la page de login
-        // window.location.href = '/';
+        (window as any).__tokenRefreshTimer = null;
+        // La fonction refreshAccessToken() gère déjà la redirection
       }
     }
   }, 2 * 60 * 1000); // Vérifier toutes les 2 minutes
 
+  // Stocker la référence du timer
+  (window as any).__tokenRefreshTimer = interval;
+
   // Nettoyer l'interval quand l'utilisateur quitte la page
   window.addEventListener('beforeunload', () => {
-    clearInterval(interval);
+    if ((window as any).__tokenRefreshTimer) {
+      clearInterval((window as any).__tokenRefreshTimer);
+      (window as any).__tokenRefreshTimer = null;
+    }
   });
 }

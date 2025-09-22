@@ -1,7 +1,8 @@
 "use client"
 import * as React from "react";
 import { usePathname } from "next/navigation";
-import { NAV_CONFIG, ICON_MAP } from "@/nav-config";
+import { useNavigation, FALLBACK_NAVIGATION } from "@/lib/navigation-service";
+import { ICON_MAP } from "@/nav-config";
 
 import {
   Sidebar,
@@ -34,6 +35,9 @@ export function ProSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
   const [isMobile, setIsMobile] = React.useState(false);
 
+  // Utiliser la navigation dynamique
+  const { navigation, loading } = useNavigation();
+
   React.useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
@@ -45,6 +49,9 @@ export function ProSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
+  // Toujours utiliser le fallback d'abord, puis mettre à jour quand l'API répond
+  const navConfig = navigation || FALLBACK_NAVIGATION;
+
   const isActive = (itemUrl: string) => {
     if (itemUrl === "/" && pathname === "/") return true;
     if (itemUrl === "/dashboard" && pathname === "/dashboard") return true;
@@ -55,7 +62,7 @@ export function ProSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   };
 
   // Calculer le nombre total d'actions
-  const totalActions = NAV_CONFIG.navMain.reduce((acc, group) =>
+  const totalActions = navConfig.navMain.reduce((acc, group) =>
     acc + group.items.reduce((itemAcc, item) => itemAcc + (item.actions?.length || 0), 0), 0
   );
 
@@ -94,7 +101,9 @@ export function ProSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   // Contenu de navigation réutilisable
   const NavigationContent = ({ isMobileView = false }: { isMobileView?: boolean }) => (
     <>
-      {NAV_CONFIG.navMain.map((group) => (
+      {/* Plus de loading/error visible - navigation fluide */}
+
+      {navConfig.navMain.map((group) => (
         <div key={group.title} className={isMobileView ? "px-6 py-4" : ""}>
           <div className={`text-xs font-medium text-muted-foreground/70 uppercase tracking-wide mb-3 ${isMobileView ? "" : "px-4 py-2"}`}>
             {group.title}
@@ -259,26 +268,73 @@ export function ProSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <Sidebar className="border-r border-border/40" {...props}>
       <SidebarHeader className="border-b border-border/40">
         <div className="flex items-center gap-2 px-4 py-3">
-          <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary">
-            <span className="text-xs font-bold text-primary-foreground">
-              {NAV_CONFIG.functionCode.charAt(0)}
-            </span>
-          </div>
-          <div className="flex flex-col">
-            <span className="text-sm font-semibold">{NAV_CONFIG.functionCode}</span>
-            <span className="text-xs text-muted-foreground">
-              {NAV_CONFIG.navMain.reduce((acc, group) => acc + group.items.length, 0)} modules • {totalActions} actions
-            </span>
-          </div>
+          {loading ? (
+            // Skeleton pendant le chargement
+            <>
+              <div className="h-7 w-7 rounded-md bg-muted animate-pulse"></div>
+              <div className="flex flex-col gap-1 flex-1">
+                <div className="h-4 w-16 bg-muted rounded animate-pulse"></div>
+                <div className="h-3 w-24 bg-muted rounded animate-pulse"></div>
+              </div>
+            </>
+          ) : (
+            // Contenu réel
+            <>
+              <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary">
+                <span className="text-xs font-bold text-primary-foreground">
+                  {navConfig.functionCode.charAt(0)}
+                </span>
+              </div>
+              <div className="flex flex-col">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-semibold">{navConfig.functionCode}</span>
+                  {navigation && (
+                    <div className="w-2 h-2 bg-green-500 rounded-full" title="Navigation synchronisée"></div>
+                  )}
+                </div>
+                <span className="text-xs text-muted-foreground">
+                  {navConfig.navMain.reduce((acc, group) => acc + group.items.length, 0)} modules • {totalActions} actions
+                </span>
+              </div>
+            </>
+          )}
         </div>
       </SidebarHeader>
 
       <SidebarContent className="px-2">
-        {NAV_CONFIG.navMain.map((group, groupIndex) => (
-          <SidebarGroup key={group.title} className={`${groupIndex > 0 ? 'mt-6' : ''}`}>
-            <SidebarGroupLabel className="px-2 py-3 text-xs font-medium text-muted-foreground/70 uppercase tracking-wide border-b border-border/30 mb-3">
-              {group.title}
-            </SidebarGroupLabel>
+        {loading ? (
+          // Skeletons pendant le chargement
+          <div className="space-y-6">
+            {[1, 2, 3].map((groupIndex) => (
+              <SidebarGroup key={groupIndex} className={`${groupIndex > 1 ? 'mt-6' : ''}`}>
+                <SidebarGroupLabel className="px-2 py-3 border-b border-border/30 mb-3">
+                  <div className="h-3 w-32 bg-muted rounded animate-pulse"></div>
+                </SidebarGroupLabel>
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    {[1, 2].map((itemIndex) => (
+                      <SidebarMenuItem key={itemIndex}>
+                        <div className="flex items-center p-4 space-x-3">
+                          <div className="h-5 w-5 bg-muted rounded animate-pulse"></div>
+                          <div className="flex-1">
+                            <div className="h-4 w-24 bg-muted rounded animate-pulse mb-1"></div>
+                            <div className="h-3 w-32 bg-muted rounded animate-pulse"></div>
+                          </div>
+                        </div>
+                      </SidebarMenuItem>
+                    ))}
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </SidebarGroup>
+            ))}
+          </div>
+        ) : (
+          // Navigation réelle
+          navConfig.navMain.map((group, groupIndex) => (
+            <SidebarGroup key={group.title} className={`${groupIndex > 0 ? 'mt-6' : ''}`}>
+              <SidebarGroupLabel className="px-2 py-3 text-xs font-medium text-muted-foreground/70 uppercase tracking-wide border-b border-border/30 mb-3">
+                {group.title}
+              </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu className="space-y-2">
                 {group.items.map((item) => {
@@ -384,7 +440,8 @@ export function ProSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
-        ))}
+        ))
+        )}
       </SidebarContent>
 
       <SidebarFooter className="border-t border-border/40">

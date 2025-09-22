@@ -164,7 +164,7 @@ export default function LandingPage() {
       `client_id=${clientId}&` +
       `redirect_uri=${encodeURIComponent(window.location.origin + '/auth/callback')}&` +
       `response_type=code&` +
-      `scope=openid&` +
+      `scope=openid offline_access&` +
       `code_challenge=${codeChallenge}&` +
       `code_challenge_method=S256&` +
       `prompt=login`;

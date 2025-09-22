@@ -21,16 +21,7 @@ import {
   RiDashboardLine
 } from '@remixicon/react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, LineChart, Line } from 'recharts';
-import { NAV_CONFIG } from '@/nav-config';
-
-// Données basées sur nav-config pour avoir une cohérence
-const moduleStats = NAV_CONFIG.navMain.map((module, index) => ({
-  name: module.title.replace('Gestion des ', '').replace('Gestion ', ''),
-  value: [2847, 1284, 567][index] || 100,
-  growth: [12.5, 8.2, -2.1][index] || 0,
-  icon: module.items[0]?.icon || 'RiUserLine',
-  color: ['#3b82f6', '#10b981', '#f59e0b'][index] || '#6b7280'
-}));
+import { useNavigation, FALLBACK_NAVIGATION } from '@/lib/navigation-service';
 
 const transactionData = [
   { month: 'Jan', clients: 1200, comptes: 850, utilisateurs: 45 },
@@ -69,11 +60,81 @@ const recentActivities = [
 ];
 
 export default function DashboardPage() {
+  // Utiliser la navigation dynamique
+  const { navigation, loading } = useNavigation();
+  const navConfig = navigation || FALLBACK_NAVIGATION;
+
+  // Générer les stats basées sur la navigation dynamique
+  const moduleStats = navConfig.navMain.map((module, index) => ({
+    name: module.title.replace('Gestion des ', '').replace('Gestion ', ''),
+    value: [2847, 1284, 567][index] || 100,
+    growth: [12.5, 8.2, -2.1][index] || 0,
+    icon: module.items[0]?.icon || 'RiUserLine',
+    color: ['#3b82f6', '#10b981', '#f59e0b'][index] || '#6b7280'
+  }));
+
   // Breadcrumbs pour le dashboard
   const breadcrumbs = [
     { title: "Accueil", href: "/" },
     { title: "Dashboard" }
   ];
+
+  if (loading) {
+    return (
+      <>
+        {/* Header skeleton */}
+        <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <div className="container flex h-14 items-center">
+            <div className="h-6 w-32 bg-muted rounded animate-pulse"></div>
+          </div>
+        </div>
+
+        <div className="p-6 space-y-6">
+          {/* Hero section skeleton */}
+          <div className="rounded-2xl bg-muted p-8 animate-pulse">
+            <div className="flex items-center justify-between">
+              <div className="flex-1 space-y-4">
+                <div className="h-4 w-48 bg-muted-foreground/20 rounded"></div>
+                <div className="h-8 w-64 bg-muted-foreground/20 rounded"></div>
+                <div className="h-4 w-96 bg-muted-foreground/20 rounded"></div>
+                <div className="flex gap-3">
+                  <div className="h-10 w-32 bg-muted-foreground/20 rounded"></div>
+                  <div className="h-10 w-24 bg-muted-foreground/20 rounded"></div>
+                </div>
+              </div>
+              <div className="hidden lg:block h-32 w-32 bg-muted-foreground/20 rounded-2xl"></div>
+            </div>
+          </div>
+
+          {/* Stats cards skeleton */}
+          <div className="grid gap-4 md:grid-cols-3">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="rounded-lg border bg-card p-6 animate-pulse">
+                <div className="flex items-center justify-between space-y-0 pb-2">
+                  <div className="h-4 w-20 bg-muted rounded"></div>
+                  <div className="h-4 w-4 bg-muted rounded"></div>
+                </div>
+                <div className="space-y-2">
+                  <div className="h-8 w-16 bg-muted rounded"></div>
+                  <div className="h-3 w-24 bg-muted rounded"></div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Charts skeleton */}
+          <div className="grid gap-4 md:grid-cols-2">
+            {[1, 2].map((i) => (
+              <div key={i} className="rounded-lg border bg-card p-6 animate-pulse">
+                <div className="h-6 w-32 bg-muted rounded mb-4"></div>
+                <div className="h-64 bg-muted rounded"></div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </>
+    );
+  }
 
   return (
     <>
@@ -282,7 +343,7 @@ export default function DashboardPage() {
 
       {/* Actions rapides */}
       <div className="grid gap-4 md:grid-cols-3">
-        {NAV_CONFIG.navMain.map((module, index) => {
+        {navConfig.navMain.map((module, index) => {
           const IconComponent = require('@remixicon/react')[module.items[0]?.icon] || RiUserLine;
           return (
             <Card key={index} className="bg-card hover:bg-card/80 transition-colors border">
