@@ -169,7 +169,7 @@ export default function DashboardPage() {
                 <RiEyeLine className="mr-2 h-4 w-4" />
                 Voir rapport détaillé
               </Button>
-              <Button variant="outline" className="border-slate-600 text-slate-200 hover:bg-slate-800 hover:text-white">
+              <Button variant="outline" className="border-slate-600 dark:text-slate-200 text-black hover:bg-slate-800 hover:text-white">
                 <RiShieldCheckLine className="mr-2 h-4 w-4" />
                 Sécurité
               </Button>

@@ -3,7 +3,7 @@ import type { NextRequest } from 'next/server'
 import { NAV_CONFIG } from './nav-config'
 
 // Configuration simple : les rôles requis pour accéder aux routes protégées
-const REQUIRED_ROLES = ['ADMIN', 'MANAGER']; // Ajoutez d'autres rôles selon vos besoins
+const REQUIRED_ROLES = ['ADMIN', 'MANAGER','CUSTOMER']; // Ajoutez d'autres rôles selon vos besoins
 const clientId = process.env.NEXT_PUBLIC_KEYCLOAK_CLIENT_ID;
 // Fonction pour extraire les rôles du client oauth2-pkce depuis le token
 function extractClientRoles(token: string): string[] {
